@@ -1,0 +1,5 @@
+.terraform*
+.terraform.lock.hcl
+.git
+terraform.tfstate*
+secret_dep_tg.yaml
