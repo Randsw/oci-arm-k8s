@@ -35,3 +35,11 @@ k8s_security_list_name = "k8s security list"
 k8s_cp_private_ip = "172.16.2.2"
 
 k8s_worker_private_ip = "172.16.2.3"
+
+security_list_name = "k8s private security list"
+
+egress_rule = [{"protocol": "all", "destination": "0.0.0.0/0"},]
+
+tcp_ingress_rule = [{"protocol": "6", "source": "0.0.0.0/0", "description": "Allow ssh", "port": "22"},]
+
+udp_ingress_rule = [{"protocol": "17", "source": "0.0.0.0/0", "description": "Allow openvpn", "port": "1194"},]

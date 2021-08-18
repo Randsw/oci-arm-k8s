@@ -1,0 +1,96 @@
+- hosts: localhost
+  become: no
+  gather_facts: no
+
+  tasks: 
+
+    - name: Delete VM ssh fingerprint
+      become: false
+      shell: "ssh-keygen -f ~/.ssh/known_hosts -R {{ hostvars[item]['ansible_host'] }}"
+      register: known_hosts_delete
+      changed_when: "'updated' in known_hosts_delete.stdout"
+      loop: "{{ groups['k8s_ha_cluster'] }}"
+
+    - name: Accept server SSH host keys
+      become: false
+      shell: |
+        ssh-keyscan -H {{ hostvars[item]['ansible_host'] }} >> ~/.ssh/known_hosts
+      register: known_hosts_script
+      until: known_hosts_script.rc == 0
+      retries: 5
+      delay: 1
+      changed_when: known_hosts_script.rc != 0
+      loop: "{{ groups['k8s_ha_cluster'] }}"
+    
+    - name: Create dir for kubeconfig
+      file:
+        path: ~/.kube
+        state: directory
+
+ 
+- hosts: k8s_ha_cluster
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+     
+    - name: Print ip address of VW
+      debug:
+        var:  hostvars[item]['ansible_eth0']['ipv4']['address']
+      loop: "{{ groups['all'] }}"
+  
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        update_cache: yes
+
+    - name: Find timezone
+      command: timedatectl 
+      register: timedate_output
+      changed_when: false
+
+    - name: Set time zone
+      command: timedatectl set-timezone Europe/Moscow
+      when: '"Moscow" not in timedate_output.stdout'
+
+    - name: Fill /etc/hosts with hosts entry
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item]['ansible_host'] }}  {{ item }}"
+      loop: "{{ groups['k8s_cluster'] }}"
+
+
+    - name: Install nessesary package
+      block:
+        - name: Install pip
+          apt:
+            name: python3-pip
+            state: present
+            update_cache: yes
+
+        - name: Install jq
+          apt:
+            name: jq
+            state: present
+           
+        - name: Install openshift
+          pip:
+            name: "{{ item }}"
+          loop:
+            - kubernetes-validate
+            - openshift
+      when: kubernetes_role == 'first-master'
+   
+  roles:
+    - { role: ansible-ntp-master }
+    - { role: geerlingguy.containerd }
+    - { role: role-kubernetes }
+    - { role: role-helm, when: kubernetes_role == 'first-master' }
+
+- hosts: k8s_ha_cluster
+  become: no
+  gather_facts: no
+
+  roles:
+    - { role: role-k8s_manifests, when: kubernetes_role == 'first-master'}
+    - { role: role-ingress, when: kubernetes_role == 'first-master'}
+

@@ -1,0 +1,81 @@
+- hosts: localhost
+  #become: yes
+  gather_facts: no
+  vars:
+    ansible_host_test: "192.168.1.131"
+    k8s_manifest_file:
+      - kube-controller-manager.yaml
+      - kube-scheduler.yaml
+      - etcd.yaml
+    k8s_kubeconfig: ~/.kube/admin.conf
+    monitoring_namespace: monitoring
+
+  pre_tasks:
+    # - name: Add taints to gw nodes
+    #   command: kubectl taint nodes {{ node }} {{ kubernetes_gw_taints }}
+    #   loop: "{{ groups['k8s_ha_gateway'] }}"
+    #   loop_control:
+    #     loop_var: node
+    #   when: kubernetes_role == 'first-master'
+
+    # - name: Add taints to worker nodes
+    #   command: kubectl taint nodes {{ node }} {{ kubernetes_worker_taints }}
+    #   loop: "{{ groups['k8s_ha_workers'] }}"
+    #   loop_control:
+    #     loop_var: node
+    #   when: kubernetes_role == 'first-master'
+      
+    # - name: Install nessesary package
+    #   block:
+    #     - name: Install pip
+    #       apt:
+    #         name: python3-pip
+    #         state: present
+    #         update_cache: yes
+        
+    #     - name: Install openshift
+    #       pip:
+    #         name: openshift
+    #   when: kubernetes_role == 'first-master'
+#   tasks:
+#     - name: Change k8s api port to k8s VIP port
+#       lineinfile:
+#         path: ~/.kube/admin.conf
+#         regexp: '(^\s*server:\s*){{ item.search }}$'
+#         line:  '\1{{ item.replace }}'
+#         backrefs: yes
+#       loop:
+#       - { search: 'https://k8s-cp:8443', replace: 'https://k8s-cp:6443' }
+
+  # tasks:   
+  
+  #   - include_tasks: k8s_cp_bind_address_change.yml
+  #     loop: "{{ k8s_manifest_file }}"
+  #     loop_control:
+  #       loop_var: k8s_manifests
+
+  #   - name: Change metrics listen url in etcd manifest
+  #     lineinfile:
+  #       path: etcd.yaml
+  #       regexp: '(^\s*-\s--listen-metrics-urls\=\s*){{ item.search }}$'
+  #       line:  '\1{{ item.replace }}'
+  #       backrefs: yes
+  #     loop:
+  #     - { search: "http://127.0.0.1:2381", replace: "http://{{ ansible_host_test }}:2381" }
+    
+  #   - include_tasks: k8s_cp_probes_address_changer.yml
+  #     loop: "{{ k8s_manifest_file }}"
+  #     loop_control:
+  #       loop_var: k8s_manifests
+
+
+  roles:
+    #- { role: role-k8s_manifests }
+    # - { role: role-k8s_manifests, when: kubernetes_role == 'first-master'}
+    # - { role: role-helm, when: kubernetes_role == 'first-master'}
+    - { role: role-efk-stack }
+    # - { role: role-vault, when: kubernetes_role == 'first-master' }
+    # - { role: role-certmanager, when: kubernetes_role == 'first-master' }
+    # - { role: role-app-deploy, when: kubernetes_role == 'first-master'}
+    # - { role: role-k8s-ns-users} #, when: kubernetes_role == 'first-master'}
+    #- { role: role-prometheus-stack}

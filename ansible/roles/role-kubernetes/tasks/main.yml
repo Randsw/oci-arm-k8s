@@ -1,0 +1,102 @@
+---
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include_tasks: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure dependencies are installed.
+  package: 
+    name: curl 
+    state: present
+
+- name: Disable swap
+  shell: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Remowe swap from /etc/fstab
+  lineinfile:
+    path: '/etc/fstab'
+    regexp: '\sswap\s'
+    state: absent
+
+- name: Install Kubernetes packages.
+  package:
+    name: "{{ item.name | default(item) }}"
+    state: "{{ item.state | default('present') }}"
+  notify: restart kubelet
+  with_items: "{{ kubernetes_packages }}"
+
+- include_tasks: sysctl-setup.yml
+
+- include_tasks: kubelet-setup.yml
+
+- name: Ensure kubelet is started and enabled at boot.
+  service:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Check if Kubernetes has already been initialized.
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubernetes_init_stat
+
+- name: Reset Old Cluster on all nodes
+  command: kubeadm reset --force
+  when: kubernetes_init_stat.stat.exists
+
+# Set up master.
+- include_tasks: master-setup.yml
+  when: kubernetes_role == 'master'
+
+# Set up nodes.
+- name: Get the kubeadm join command from the Kubernetes master.
+  command: kubeadm token create --print-join-command
+  changed_when: false
+  when: kubernetes_role == 'master'
+  register: kubernetes_join_command_result
+
+- name: Set the kubeadm node join command
+  set_fact:
+    kubernetes_node_join_command: >
+      {{ kubernetes_join_command_result.stdout }}
+      {{ hostvars[groups['k8s_workers'][0]]['kubernetes_join_command_extra_opts'] }} 
+  when: kubernetes_join_command_result.stdout is defined
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  with_items: "{{ groups['k8s_ha_not_masters'] }}"
+
+- name: Print the init output to screen.
+  debug:
+    var: kubernetes_node_join_command
+  when: kubernetes_role == 'node' 
+
+- include_tasks: node-setup.yml
+  when: kubernetes_role == 'node'
+
+- name: Configure proper listen ip address for kube-prometheus-stack metrics
+  block:
+    - include_tasks: k8s_cp_bind_address_change.yml
+      loop: "{{ k8s_cp_manifest_file }}"
+      loop_control:
+        loop_var: k8s_manifests
+    
+    - name: Change metrics listen url in etcd manifest
+      lineinfile:
+        path: /etc/kubernetes/manifests/etcd.yaml
+        regexp: '(^\s*-\s--listen-metrics-urls\=\s*){{ item.search }}$'
+        line:  '\1{{ item.replace }}'
+        backrefs: yes
+      loop:
+      - { search: "http://127.0.0.1:2381", replace: "http://{{ ansible_host }}:2381" }
+     
+    - include_tasks: k8s_cp_probes_address_changer.yml
+      loop: "{{ k8s_cp_manifest_file }}"
+      loop_control:
+        loop_var: k8s_manifests
+         
+  when: inventory_hostname in groups['k8s_masters']

@@ -1,0 +1,65 @@
+---
+- name: Get ansible host username
+  become: false
+  command: whoami
+  register: ansible_host_username
+  changed_when: false
+
+- name: Set kubeconfig variable
+  set_fact:
+    k8s_kubeconfig: "/home/{{ ansible_host_username.stdout }}/.kube/config"
+
+- name: Ensure at least one manifest is in the list.
+  fail:
+    msg: "Please supply one or more k8s_manifests to apply."
+  when: k8s_manifests == []
+
+- name: Ensure a namespace is set.
+  fail:
+    msg: "The k8s_resource_namespace variable is not set."
+  when:
+    - k8s_manage_namespace
+    - k8s_resource_namespace | default(true)
+
+- name: Ensure namespace exists.
+  community.kubernetes.k8s:
+    api_version: v1
+    kind: Namespace
+    name: "{{ k8s_resource_namespace }}"
+    state: present
+    kubeconfig: "{{ k8s_kubeconfig }}"
+  when: k8s_manage_namespace
+
+- name: Deploy manifests defined in k8s_manifests.
+  include_tasks: deploy-manifest.yml
+  loop: "{{ k8s_manifests }}"
+  loop_control:
+    loop_var: outer_item
+
+- name: Check for metallb memberlist secret
+  command: kubectl describe secret memberlist -n metallb-system
+  register: metallb_secret
+  changed_when: false
+  ignore_errors: yes
+
+- name: Create metallb memberlist secret if not present
+  command: 'kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"'
+  when: metallb_secret.rc == 1
+  
+- name: Set local path provisioner as default storage class
+  shell: >
+    kubectl patch storageclass local-path 
+    -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+- name: Wait for pods created
+  become: false
+  command: kubectl get po -A
+  register: result
+  until: result.stdout.find("{{ item }}") != -1
+  retries: 10
+  delay: 5
+  loop: "{{ k8s_manifests_namespaces }}"
+
+- name: Wait for service pods become ready
+  command: "kubectl wait --namespace={{ item }} --for=condition=Ready --all pods --timeout=600s"
+  loop: "{{ k8s_manifests_namespaces }}"

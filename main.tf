@@ -21,6 +21,10 @@ terraform {
   }
 }
 
+locals {
+    security_list_ids = "${split(",", module.oci-security.security_list_id)}"
+}
+
 data "oci_identity_availability_domains" "ads" {
   compartment_id = data.oci_identity_compartments.vpn_compartments.compartments[0].id
 }
@@ -59,6 +63,18 @@ data "oci_core_security_lists" "vpn_security_lists" {
     vcn_id = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
 }
 
+module "oci-security" {
+    source = "git@github.com:Randsw/oci-terraform-security.git"
+
+    vcn_id             = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
+    compartment_id     = data.oci_identity_compartments.vpn_compartments.compartments[0].id
+    app_tags           = var.app_tags
+    security_list_name = var.security_list_name
+    egress_rule        = var.egress_rule
+    tcp_ingress_rule   = var.tcp_ingress_rule
+    udp_ingress_rule   = var.udp_ingress_rule
+}
+
 resource "oci_core_route_table" "private_subnet_route_table" {
     compartment_id = data.oci_identity_compartments.vpn_compartments.compartments[0].id
     vcn_id = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
@@ -82,7 +98,7 @@ resource "oci_core_subnet" "private_subnet" {
     freeform_tags = var.app_tags
 
     route_table_id = oci_core_route_table.private_subnet_route_table.id
-    security_list_ids = "${split(",", data.oci_core_security_lists.vpn_security_lists.security_lists[0].id)}"
+    security_list_ids = local.security_list_ids
 }
 
 resource "oci_core_security_list" "k8s_security_list" {

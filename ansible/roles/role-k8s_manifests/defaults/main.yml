@@ -1,0 +1,19 @@
+---
+k8s_manifests: 
+  - dir: metallb
+    lookup_type: 'file'
+  - dir: local-path-provisioner
+    lookup_type: 'file'
+  - configmapclass
+k8s_manifests_base_dir: k8s-manifests/
+k8s_manifests_state: present
+k8s_force: false
+
+k8s_resource_namespace: ''
+k8s_manage_namespace: false
+k8s_no_log: false
+k8s_manifests_namespaces:
+  - local-path-storage
+  - metallb-system 
+  - kube-system
+ 

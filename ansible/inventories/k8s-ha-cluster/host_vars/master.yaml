@@ -1,0 +1,19 @@
+ansible_host: 192.168.1.131
+ansible_user: ubuntu
+ansible_ssh_private_key_file: "~/ya_rsa"
+
+
+###################### Kubernetes variable ############################################
+kubernetes_role: "first-master"
+kubernetes_kubeproxy_mode: "ipvs"
+kubernetes_apiserver_advertise_address: "{{ ansible_host }}"
+kubernetes_cluster_domain_name: "cluster.local"
+kubernetes_cgroupDriver: "systemd"
+kubernetes_cri_socket: "/run/containerd/containerd.sock"
+kubernetes_cluster_name: kubernetes
+kubernetes_apiserver_certSANs:
+  - 127.0.0.1
+  - cluster-api.example.com
+  - 192.168.1.131
+  - 192.168.1.132
+  - 192.168.1.133 

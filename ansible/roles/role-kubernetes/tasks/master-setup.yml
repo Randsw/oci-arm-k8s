@@ -1,0 +1,146 @@
+---
+- name: Get playbook executor username
+  become: false
+  local_action: command whoami
+  register: playbook_executor_username
+  changed_when: false
+
+- name: Get ansible host executer username
+  become: false
+  command: whoami
+  register: ansible_host_username
+  changed_when: false
+
+# Use kubeadm config file to cluster setup
+- name: Copy kubeadm config file to ansible host
+  template:
+    src: "cluster-config.yml.j2"
+    dest: "/home/{{ ansible_host_username.stdout }}/cluster-config.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: 0555
+
+- name: Initialize Kubernetes master with kubeadm init using config file
+  command: "kubeadm init --config /home/{{ ansible_host_username.stdout }}/cluster-config.yml" 
+  register: kubeadmin_init
+  when: not kubernetes_init_stat.stat.exists
+
+- name: Print the init output to screen.
+  debug:
+    var: kubeadmin_init.stdout_lines
+  when: not kubernetes_init_stat.stat.exists
+
+- name: Ensure .kube directory exists.
+  become: no
+  file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    mode: 0755
+
+- name: Symlink the kubectl admin.conf to /home/{{ ansible_user }}/.kube/config
+  file:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_host_username.stdout }}/.kube/config"
+    state: link
+    mode: 0644
+
+- name: Get kubernetes config file to ansible executor
+  fetch:
+    src: "/etc/kubernetes/admin.conf"
+    dest: "/home/{{ playbook_executor_username.stdout }}/.kube/"
+    flat: yes
+
+- name: Configure Flannel networking.
+  become: false
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f {{ kubernetes_flannel_manifest_file_rbac }}
+    - kubectl apply -f {{ kubernetes_flannel_manifest_file }}
+  register: flannel_result
+  changed_when: "'created' in flannel_result.stdout"
+  when: kubernetes_pod_network.cni == 'flannel'
+
+- name: Copy config file for Callico networking
+  become: false
+  copy:
+    src: calico.yaml
+    dest: /home/{{ ansible_host_username.stdout  }}/calico.yml
+    mode: 0644
+
+- name: Configure Calico networking.
+  become: false
+  command: "{{ item }}"
+  loop:
+    - "kubectl apply -f /home/{{ ansible_host_username.stdout }}/calico.yml"
+  register: calico_result
+  changed_when: "'created' in calico_result.stdout"
+  when: kubernetes_pod_network.cni == 'calico'
+
+- name: Get Kubernetes version for Weave installation.
+  become: false
+  shell: kubectl version | base64 | tr -d '\n'
+  changed_when: false
+  register: kubectl_version
+  when: kubernetes_pod_network.cni == 'weave'
+
+- name: Configure Weave networking.
+  become: false
+  command: "{{ item }}"
+  with_items:
+    - "kubectl apply -f https://cloud.weave.works/k8s/net?k8s-version={{ kubectl_version.stdout_lines[0] }}"
+  register: weave_result
+  changed_when: "'created' in weave_result.stdout"
+  when: kubernetes_pod_network.cni == 'weave'
+
+- name: Configure Cillium networking
+  become: false
+  command: "{{ item }}"
+  loop:
+    - "kubectl apply -f {{ cillium_manifest_file }}"
+  register: cillium_result
+  changed_when: "'created' in cillium_result"
+  when: kubernetes_pod_network.cni == 'cillium' 
+
+# TODO: Check if taint exists with something like `kubectl describe nodes`
+# instead of using kubernetes_init_stat.stat.exists check.
+- name: Allow pods on master node (if configured).
+  become: false
+  command: "kubectl taint nodes --all node-role.kubernetes.io/master-"
+  when:
+    - kubernetes_allow_pods_on_master | bool
+    - not kubernetes_init_stat.stat.exists
+
+- name: Check if Kubernetes Dashboard UI service already exists.
+  become: false
+  shell: kubectl get services --namespace kube-system | grep -q kubernetes-dashboard
+  changed_when: false
+  failed_when: false
+  register: kubernetes_dashboard_service
+  when: kubernetes_enable_web_ui | bool
+
+- name: Enable the Kubernetes Web Dashboard UI (if configured).
+  become: false
+  command: "kubectl create -f {{ kubernetes_web_ui_manifest_file }}"
+  when:
+    - kubernetes_enable_web_ui | bool
+    - kubernetes_dashboard_service is failed
+
+- name: Wait for kube-system namespaces created
+  become: false
+  command: "kubectl get ns"
+  register: kube_system_ns
+  until: kube_system_ns.stdout.find("kube-system") != -1
+  retries: 10
+  delay: 10
+
+- name: Wait for pods created
+  become: false
+  command: kubectl get po -A
+  register: kube_system_po
+  until: kube_system_po.stdout.find("kube-system") != -1
+  retries: 10
+  delay: 10
+
+- name: Wait for service pods become ready
+  become: false
+  command: "kubectl wait --namespace=kube-system --for=condition=Ready --all pods --timeout=600s"

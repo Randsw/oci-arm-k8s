@@ -1,0 +1,43 @@
+- hosts: localhost
+  gather_facts: no
+
+  tasks:
+  
+  - name: Get root ca certificate
+    set_fact:
+      ca_root_cert: "{{ lookup('file', '/home/{{ ansible_user }}/demo-root-ca.json') | 
+                        from_json | json_query('data.certificate') }}"
+
+  - name: Save root CA certfifcate to file
+    copy:
+      content: "{{ ca_root_cert }}"
+      dest: "/home/{{ ansible_user }}/root-ca.crt"
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: '0400' 
+
+# Uri module doesn`t allow provide ca certificate file. Community version allow select ca_path, so just waiting...
+      
+#  - name: Test application apple
+#    ansible.builtin.uri:
+#      url: https://echo.example.com/apple
+#      return_content: yes
+#      ca_path: "/home/{{ ansible_user }}/root-ca.crt"
+#    register: response
+#    failed_when: "'apple' not in response.content"
+
+  - name: Test echo app with curl - apple
+    command: "curl --cacert /home/{{ ansible_user }}/root-ca.crt https://echo.example.com/apple"
+    register: response_apple
+    failed_when: "'apple' not in response_apple.stdout"
+
+  - name: Test echo app with curl - banana
+    command: "curl --cacert /home/{{ ansible_user }}/root-ca.crt https://echo.example.com/banana"
+    register: response_banana
+    failed_when: "'banana' not in response_banana.stdout"
+
+  - name: Delete root CA certfifcate file
+    file:
+      path: "/home/{{ ansible_user }}/root-ca.crt"
+      state: absent
+

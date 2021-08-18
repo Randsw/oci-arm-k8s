@@ -1,0 +1,5 @@
+ingress_taint: node-role.kubernetes.io/gw
+controller_kind: DaemonSet
+prometheus_stack_release_name: monitoring
+prometheus_stack_namespace: monitoring
+fluentbit_parser: "nginx_custom"

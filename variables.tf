@@ -83,3 +83,24 @@ variable "k8s_cp_private_ip" {
 variable "k8s_worker_private_ip" {
     type = string
 }
+
+
+variable "security_list_name" {
+    type = string
+    default = null
+}
+
+variable "egress_rule" {
+    type = list(map(string))
+    default = null
+}
+
+variable "tcp_ingress_rule" {
+    type = list(map(string))
+    default = null
+}
+
+variable "udp_ingress_rule" {
+    type = list(map(string))
+    default = null
+}
