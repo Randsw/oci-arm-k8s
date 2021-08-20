@@ -3,3 +3,4 @@
 .git
 terraform.tfstate*
 secret_dep_tg.yaml
+.vagrant

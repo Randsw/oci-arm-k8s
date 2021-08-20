@@ -7,5 +7,5 @@ k8s_cp_port: 6443
 kubernetes_kubeadm_init_extra_opts: "--cri-socket  /run/containerd/containerd.sock"
 #used_eth_interface: "eth1"
 
-helm_arch: 
-docker_apt_arch: 
+# helm_arch: arm64
+# docker_apt_arch: arm64

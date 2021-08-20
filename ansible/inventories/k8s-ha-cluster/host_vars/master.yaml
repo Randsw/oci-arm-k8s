@@ -1,7 +1,8 @@
 ansible_host: 172.16.1.2
-ansible_user: ubuntu
-ansible_ssh_private_key_file: "~/ya_rsa"
-
+#ansible_user: ubuntu
+#ansible_ssh_private_key_file: "~/ya_rsa"
+ansible_user: vagrant
+ansible_ssh_private_key_file: "./.vagrant/machines/{{ inventory_hostname }}/virtualbox/private_key"
 
 ###################### Kubernetes variable ############################################
 kubernetes_role: "master"

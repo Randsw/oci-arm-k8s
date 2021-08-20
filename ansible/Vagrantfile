@@ -1,0 +1,26 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+$bridge = "wlxbcf685653648" #name of network interface with internet connection 
+$vm_cidr = "172.16.1" # virtual machines CIDR
+Vagrant.configure("2") do |config|
+    config.vm.box = "generic/ubuntu1804"
+    config.vm.box_check_update = false
+    config.vm.define "k8s-cp" do |node|
+        node.vm.network "public_network", ip: "#{$vm_cidr}.2", bridge: $bridge
+        node.vm.hostname = "k8s-cp"
+        node.vm.provider "virtualbox" do |vb|
+            vb.gui = false
+            vb.memory = "4096"
+            vb.cpus=2
+        end
+    end
+    config.vm.define "k8s-worker" do |node|
+        node.vm.network "public_network", ip: "#{$vm_cidr}.210", bridge: $bridge
+        node.vm.hostname = "k8s-worker"
+        node.vm.provider "virtualbox" do |vb|
+            vb.gui = false
+            vb.memory = "4096"
+            vb.cpus=2
+        end
+    end
+end
