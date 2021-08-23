@@ -1,6 +1,6 @@
 apiVersion: kubeadm.k8s.io/v1beta2
 kind: ClusterConfiguration
-kubernetesVersion: v1.20.0
+kubernetesVersion: v1.21.4
 apiServer:
   certSANs:
 {% for adr in kubernetes_apiserver_certSANs %}

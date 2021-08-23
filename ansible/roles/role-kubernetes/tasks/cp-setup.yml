@@ -20,7 +20,7 @@
     group: "{{ ansible_user }}"
     mode: 0555
 
-- name: Initialize Kubernetes master with kubeadm init using config file
+- name: Initialize Kubernetes control plane with kubeadm init using config file
   command: "kubeadm init --config /home/{{ ansible_host_username.stdout }}/cluster-config.yml" 
   register: kubeadmin_init
   when: not kubernetes_init_stat.stat.exists
@@ -103,11 +103,11 @@
 
 # TODO: Check if taint exists with something like `kubectl describe nodes`
 # instead of using kubernetes_init_stat.stat.exists check.
-- name: Allow pods on master node (if configured).
+- name: Allow pods on control plane node (if configured).
   become: false
   command: "kubectl taint nodes --all node-role.kubernetes.io/master-"
   when:
-    - kubernetes_allow_pods_on_master | bool
+    - kubernetes_allow_pods_on_cp | bool
     - not kubernetes_init_stat.stat.exists
 
 - name: Check if Kubernetes Dashboard UI service already exists.

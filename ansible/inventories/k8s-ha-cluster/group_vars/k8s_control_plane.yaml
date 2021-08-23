@@ -1,2 +1,2 @@
-kubernetes_role: master
+kubernetes_role: control_plane
 kubernetes_master_join_command_extra_opts: "--cri-socket  /run/containerd/containerd.sock --control-plane --certificate-key " 

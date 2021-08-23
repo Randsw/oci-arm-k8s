@@ -13,13 +13,13 @@ kubernetes_version: '1.21'
 kubernetes_version_rhel_package: '1.19.0'
 cillium_version: '1.9.3'
 
-kubernetes_role: master
+kubernetes_role: control_plane
 
 kubernetes_kubelet_extra_args: ""
 kubernetes_kubeadm_init_extra_opts: ""
 kubernetes_join_command_extra_opts: ""
 
-kubernetes_allow_pods_on_master: false
+kubernetes_allow_pods_on_cp: false
 kubernetes_enable_web_ui: false
 kubernetes_web_ui_manifest_file: https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
 

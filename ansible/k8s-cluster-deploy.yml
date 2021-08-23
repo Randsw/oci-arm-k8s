@@ -9,7 +9,7 @@
       shell: "ssh-keygen -f ~/.ssh/known_hosts -R {{ hostvars[item]['ansible_host'] }}"
       register: known_hosts_delete
       changed_when: "'updated' in known_hosts_delete.stdout"
-      loop: "{{ groups['k8s_ha_cluster'] }}"
+      loop: "{{ groups['k8s_cluster'] }}"
 
     - name: Accept server SSH host keys
       become: false
@@ -20,7 +20,7 @@
       retries: 5
       delay: 1
       changed_when: known_hosts_script.rc != 0
-      loop: "{{ groups['k8s_ha_cluster'] }}"
+      loop: "{{ groups['k8s_cluster'] }}"
     
     - name: Create dir for kubeconfig
       file:
@@ -28,7 +28,7 @@
         state: directory
 
  
-- hosts: k8s_ha_cluster
+- hosts: k8s_cluster
   become: yes
   gather_facts: yes
 
@@ -36,7 +36,7 @@
      
     - name: Print ip address of VW
       debug:
-        var:  hostvars[item]['ansible_eth0']['ipv4']['address']
+        var:  hostvars[item]['ansible_eth1']['ipv4']['address']
       loop: "{{ groups['all'] }}"
   
     - name: Run the equivalent of "apt-get update" as a separate step
@@ -78,19 +78,19 @@
           loop:
             - kubernetes-validate
             - openshift
-      when: kubernetes_role == 'first-master'
+      when: kubernetes_role == 'control_plane'
    
   roles:
     - { role: ansible-ntp-master }
     - { role: geerlingguy.containerd }
     - { role: role-kubernetes }
-    - { role: role-helm, when: kubernetes_role == 'first-master' }
+    - { role: role-helm, when: kubernetes_role == 'control_plane' }
 
 - hosts: k8s_ha_cluster
   become: no
   gather_facts: no
 
   roles:
-    - { role: role-k8s_manifests, when: kubernetes_role == 'first-master'}
-    - { role: role-ingress, when: kubernetes_role == 'first-master'}
+    - { role: role-k8s_manifests, when: kubernetes_role == 'control_plane'}
+    - { role: role-ingress, when: kubernetes_role == 'control_plane'}
 

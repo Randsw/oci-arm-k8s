@@ -49,15 +49,15 @@
   command: kubeadm reset --force
   when: kubernetes_init_stat.stat.exists
 
-# Set up master.
-- include_tasks: master-setup.yml
-  when: kubernetes_role == 'master'
+# Set up control plane.
+- include_tasks: cp-setup.yml
+  when: kubernetes_role == 'control_plane'
 
 # Set up nodes.
-- name: Get the kubeadm join command from the Kubernetes master.
+- name: Get the kubeadm join command from the Kubernetes control plane.
   command: kubeadm token create --print-join-command
   changed_when: false
-  when: kubernetes_role == 'master'
+  when: kubernetes_role == 'control_plane'
   register: kubernetes_join_command_result
 
 - name: Set the kubeadm node join command
@@ -68,7 +68,7 @@
   when: kubernetes_join_command_result.stdout is defined
   delegate_to: "{{ item }}"
   delegate_facts: true
-  with_items: "{{ groups['k8s_ha_not_masters'] }}"
+  with_items: "{{ groups['k8s_workers'] }}"
 
 - name: Print the init output to screen.
   debug:
@@ -99,4 +99,4 @@
       loop_control:
         loop_var: k8s_manifests
          
-  when: inventory_hostname in groups['k8s_masters']
+  when: inventory_hostname in groups['k8s_control_plane']
