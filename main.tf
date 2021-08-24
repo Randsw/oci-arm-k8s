@@ -111,6 +111,37 @@ resource "oci_core_security_list" "k8s_security_list" {
         protocol = "all"
         source   = var.private_subnet_cidr_block
      }
+
+    #K8s http ingress port
+    ingress_security_rules {
+        protocol = "6"
+        source   = "0.0.0.0/0"
+        tcp_options {
+            min = "80"
+            max = "80"
+        }
+     }
+
+    #k8s https ingress port
+        ingress_security_rules {
+        protocol = "6"
+        source   = "0.0.0.0/0"
+            tcp_options {
+                min = "443"
+                max = "443"
+            }
+        }
+
+    # k8s api port
+    ingress_security_rules {
+        protocol = "6"
+        source   = var.openvpn_subnet_cidr
+        tcp_options {
+            min = "6443"
+            max = "6443"
+        }
+     }
+
      egress_security_rules {
         protocol = "all"
         destination   = "0.0.0.0/0"

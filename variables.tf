@@ -84,6 +84,10 @@ variable "k8s_worker_private_ip" {
     type = string
 }
 
+variable "openvpn_subnet_cidr" {
+    type = string
+}
+
 
 variable "security_list_name" {
     type = string

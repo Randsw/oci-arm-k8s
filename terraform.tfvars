@@ -36,6 +36,8 @@ k8s_cp_private_ip = "172.16.2.2"
 
 k8s_worker_private_ip = "172.16.2.3"
 
+openvpn_subnet_cidr = "10.9.0.0/24"
+
 security_list_name = "k8s private security list"
 
 egress_rule = [{"protocol": "all", "destination": "0.0.0.0/0"},]
