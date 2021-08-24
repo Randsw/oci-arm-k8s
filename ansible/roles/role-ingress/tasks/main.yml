@@ -28,13 +28,13 @@
             - effect: NoSchedule
               key: "{{ ingress_taint }}"
         metrics:
-          enabled: true
+          enabled: false
           serviceMonitor:
-            enabled: true
+            enabled: false
             additionalLabels:
               release: "{{ prometheus_stack_release_name }}"
           prometheusRule:
-            enabled: true
+            enabled: false
             namespace: "{{ prometheus_stack_namespace }}" 
             additionalLabels:
               release: "{{ prometheus_stack_release_name }}"
@@ -74,12 +74,4 @@
                   description: Too many 4XXs
                   summary: More than 5% of all requests returned 4XX, this requires your attention
 
-- name: Add NGINX ingress grafana dashboard
-  community.kubernetes.k8s:
-    state: present
-    kubeconfig: "{{ k8s_kubeconfig }}"
-    definition: "{{ lookup('file', 'roles/role-ingress/files/ingress-dashboard-cm.yaml') | from_yaml }}"
-    namespace: "{{ prometheus_stack_namespace }}"
-    validate:
-      fail_on_error: yes
       

@@ -17,4 +17,4 @@ kubernetes_apiserver_certSANs:
   - 172.16.1.2
   - cluster-api.rand-k8s.tk
   - rand-k8s.tk
-  - k8s-cp.k8ssubnet.openvpn.internal.oracle.com
+  - k8s-cp.k8ssubnet.internal.oraclevcn.com
