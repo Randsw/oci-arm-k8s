@@ -86,7 +86,7 @@
     - { role: role-kubernetes }
     - { role: role-helm, when: kubernetes_role == 'control_plane' }
 
-- hosts: k8s_ha_cluster
+- hosts: k8s_cluster
   become: no
   gather_facts: no
 
