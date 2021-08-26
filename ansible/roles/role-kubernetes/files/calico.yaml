@@ -3640,9 +3640,6 @@ spec:
             # Auto-detect the BGP IP address.
             - name: IP
               value: "autodetect"
-            # Select proper ethernet interface
-            - name: IP_AUTODETECTION_METHOD
-              value: "interface=eth1"
             # Enable IPIP
             - name: CALICO_IPV4POOL_IPIP
               value: "Always"

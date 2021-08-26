@@ -34,6 +34,8 @@ kubernetes_pod_network:
   #cni: 'cillium'
   #cidr: '10.0.0.0/8'
 
+calico_choose_eth_interface: 'false'
+
 kubernetes_apiserver_advertise_address: '10.42.0.1'
 kubernetes_version_kubeadm: 'stable-{{ kubernetes_version }}'
 kubernetes_ignore_preflight_errors: 'all'

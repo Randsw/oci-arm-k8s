@@ -1,9 +1,10 @@
-ansible_host: 192.168.1.220
-#ansible_host: 172.16.1.220
-#ansible_user: ubuntu
-#ansible_ssh_private_key_file: "~/ya_rsa"
-ansible_user: vagrant
-ansible_ssh_private_key_file: "./.vagrant/machines/{{ inventory_hostname }}/virtualbox/private_key"
+#ansible_host: 192.168.1.220
+#ansible_user: vagrant
+#ansible_ssh_private_key_file: "./.vagrant/machines/{{ inventory_hostname }}/virtualbox/private_key"
+ansible_host: 172.16.1.2
+ansible_user: ubuntu
+ansible_ssh_private_key_file: "~/ya_rsa"
+
 
 ###################### Kubernetes variable ############################################
 kubernetes_role: "control_plane"
