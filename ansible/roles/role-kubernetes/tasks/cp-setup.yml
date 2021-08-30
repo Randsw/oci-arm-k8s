@@ -68,7 +68,6 @@
         src: calico.yaml
         dest: /home/{{ ansible_host_username.stdout  }}/calico.yml
         mode: 0644
-      when: kubernetes_pod_network.cni == 'calico' and calico_choose_eth_interface == 'true' 
     
     - name: Configure Calico networking from file.
       become: false
