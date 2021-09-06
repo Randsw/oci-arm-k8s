@@ -87,6 +87,12 @@
   changed_when: "'created' in calico_result.stdout"
   when: kubernetes_pod_network.cni == 'calico' and calico_choose_eth_interface == 'false'
 
+- name: Patch calico config to select proper ethernet interface
+  become: false
+  command: kubectl set env daemonset/calico-node -n kube-system IP_AUTODETECTION_METHOD=can-reach=www.google.com
+  changed_when: false
+  when: kubernetes_pod_network.cni == 'calico' and calico_choose_eth_interface == 'false'
+
 - name: Get Kubernetes version for Weave installation.
   become: false
   shell: kubectl version | base64 | tr -d '\n'
@@ -135,6 +141,11 @@
   when:
     - kubernetes_enable_web_ui | bool
     - kubernetes_dashboard_service is failed
+
+- name: Restart containerd
+  service:
+    name: containerd
+    state: restarted
 
 - name: Wait for kube-system namespaces created
   become: false
