@@ -109,13 +109,27 @@ resource "oci_core_security_list" "k8s_security_list" {
 
      ingress_security_rules {
         protocol = "all"
+        source   = var.data.oci_core_subnets.public_subnets.subnets[0].cidr_block
+        description = "Allow connection from public OpenVPN subnet"
+     }
+
+    ingress_security_rules {
+        protocol = "all"
         source   = var.private_subnet_cidr_block
+        description = "Allow connection from k8s subnet"
+     }
+
+    ingress_security_rules {
+        protocol = "all"
+        source   = var.openvpn_subnet_cidr
+        description = "Allow connection from OpenVPN CIDR"
      }
 
     #K8s http ingress port
     ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
+        description = "Allow http connection"
         tcp_options {
             min = "80"
             max = "80"
@@ -126,6 +140,7 @@ resource "oci_core_security_list" "k8s_security_list" {
         ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
+        description = "Allow https connection"
             tcp_options {
                 min = "443"
                 max = "443"
@@ -136,11 +151,45 @@ resource "oci_core_security_list" "k8s_security_list" {
     ingress_security_rules {
         protocol = "6"
         source   = var.openvpn_subnet_cidr
+        description = "Allow connection to k8s api from public subnet through OpenVPN"
         tcp_options {
             min = "6443"
             max = "6443"
         }
      }
+
+    ingress_security_rules {
+        protocol = "6"
+        source   = var.private_subnet_cidr_block
+        description = "Allow connection k8s CNI BGP connection in priveta subnet"
+        tcp_options {
+            min = "179"
+            max = "179"
+        }
+     }
+
+    ingress_security_rules {
+        protocol = "6"
+        source   = "0.0.0.0/0"
+        description = "Allow ntp connection"
+        tcp_options {
+            min = "123"
+            max = "123"
+        }
+     }
+
+    ingress_security_rules {
+        protocol = "4"
+        source   = var.data.oci_core_subnets.public_subnets.subnets[0].cidr_block
+        description = "Allow IPIP connection from public subnet"
+     }
+
+    ingress_security_rules {
+        protocol = "4"
+        source   = var.openvpn_subnet_cidr
+        description = "Allow IPIP connection from OpenVPN CIDR"
+     }
+
 
      egress_security_rules {
         protocol = "all"

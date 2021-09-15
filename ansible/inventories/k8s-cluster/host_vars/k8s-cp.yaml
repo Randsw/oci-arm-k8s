@@ -19,3 +19,5 @@ kubernetes_apiserver_certSANs:
   - cluster-api.rand-k8s.tk
   - rand-k8s.tk
   - k8s-cp.k8ssubnet.internal.oraclevcn.com
+  - k8s-worker
+  - k8s-cp
