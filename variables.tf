@@ -88,12 +88,6 @@ variable "openvpn_subnet_cidr" {
     type = string
 }
 
-
-variable "security_list_name" {
-    type = string
-    default = null
-}
-
 variable "egress_rule" {
     type = list(map(string))
     default = null

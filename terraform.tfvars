@@ -5,7 +5,7 @@ ssh_key_private = "~/ya_rsa"
 region = "eu-frankfurt-1" 
 
 image_id = {
-    eu-frankfurt-1 = "ocid1.image.oc1.eu-frankfurt-1.aaaaaaaaymguk5srho2luw7w627fm3sshgtgpsfkzmeiec3qrrwsy3ys76fa" #!!!!!!!!!!!!!!
+    eu-frankfurt-1 = "ocid1.image.oc1.eu-frankfurt-1.aaaaaaaaymguk5srho2luw7w627fm3sshgtgpsfkzmeiec3qrrwsy3ys76fa" 
 }
 
 compartment_name = "OpenVPN"
@@ -26,19 +26,17 @@ app_tags = {
 
 private_subnet_display_name = "k8s-subnet1"
 
-private_subnet_cidr_block = "172.16.2.0/24"
+private_subnet_cidr_block = "172.16.1.0/24"
 
 vpn_security_list_display_name = "OpenVPN security list"
 
 k8s_security_list_name = "k8s security list"
 
-k8s_cp_private_ip = "172.16.2.2"
+k8s_cp_private_ip = "172.16.1.2"
 
-k8s_worker_private_ip = "172.16.2.3"
+k8s_worker_private_ip = "172.16.1.3"
 
 openvpn_subnet_cidr = "10.9.0.0/24"
-
-security_list_name = "k8s private security list"
 
 egress_rule = [{"protocol": "all", "destination": "0.0.0.0/0"},]
 

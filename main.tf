@@ -22,7 +22,7 @@ terraform {
 }
 
 locals {
-    security_list_ids = "${split(",", module.oci-security.security_list_id)}"
+    security_list_ids = "${split(",", oci_core_security_list.k8s_security_list.id)}"
 }
 
 data "oci_identity_availability_domains" "ads" {
@@ -63,18 +63,6 @@ data "oci_core_security_lists" "vpn_security_lists" {
     vcn_id = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
 }
 
-module "oci-security" {
-    source = "git@github.com:Randsw/oci-terraform-security.git"
-
-    vcn_id             = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
-    compartment_id     = data.oci_identity_compartments.vpn_compartments.compartments[0].id
-    app_tags           = var.app_tags
-    security_list_name = var.security_list_name
-    egress_rule        = var.egress_rule
-    tcp_ingress_rule   = var.tcp_ingress_rule
-    udp_ingress_rule   = var.udp_ingress_rule
-}
-
 resource "oci_core_route_table" "private_subnet_route_table" {
     compartment_id = data.oci_identity_compartments.vpn_compartments.compartments[0].id
     vcn_id = data.oci_core_vcns.existing_vcns.virtual_networks[0].id
@@ -107,25 +95,6 @@ resource "oci_core_security_list" "k8s_security_list" {
     display_name = var.k8s_security_list_name
     freeform_tags = var.app_tags
 
-     ingress_security_rules {
-        protocol = "all"
-        source   = var.data.oci_core_subnets.public_subnets.subnets[0].cidr_block
-        description = "Allow connection from public OpenVPN subnet"
-     }
-
-    ingress_security_rules {
-        protocol = "all"
-        source   = var.private_subnet_cidr_block
-        description = "Allow connection from k8s subnet"
-     }
-
-    ingress_security_rules {
-        protocol = "all"
-        source   = var.openvpn_subnet_cidr
-        description = "Allow connection from OpenVPN CIDR"
-     }
-
-    #K8s http ingress port
     ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
@@ -136,7 +105,6 @@ resource "oci_core_security_list" "k8s_security_list" {
         }
      }
 
-    #k8s https ingress port
         ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
@@ -147,10 +115,9 @@ resource "oci_core_security_list" "k8s_security_list" {
             }
         }
 
-    # k8s api port
     ingress_security_rules {
         protocol = "6"
-        source   = var.openvpn_subnet_cidr
+        source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
         description = "Allow connection to k8s api from public subnet through OpenVPN"
         tcp_options {
             min = "6443"
@@ -161,7 +128,7 @@ resource "oci_core_security_list" "k8s_security_list" {
     ingress_security_rules {
         protocol = "6"
         source   = var.private_subnet_cidr_block
-        description = "Allow connection k8s CNI BGP connection in priveta subnet"
+        description = "Allow connection k8s CNI BGP connection in private subnet"
         tcp_options {
             min = "179"
             max = "179"
@@ -169,7 +136,7 @@ resource "oci_core_security_list" "k8s_security_list" {
      }
 
     ingress_security_rules {
-        protocol = "6"
+        protocol = "17"
         source   = "0.0.0.0/0"
         description = "Allow ntp connection"
         tcp_options {
@@ -180,25 +147,64 @@ resource "oci_core_security_list" "k8s_security_list" {
 
     ingress_security_rules {
         protocol = "4"
-        source   = var.data.oci_core_subnets.public_subnets.subnets[0].cidr_block
+        source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
         description = "Allow IPIP connection from public subnet"
      }
 
     ingress_security_rules {
         protocol = "4"
-        source   = var.openvpn_subnet_cidr
-        description = "Allow IPIP connection from OpenVPN CIDR"
+        source   = var.private_subnet_cidr_block
+        description = "Allow IPIP connection"
      }
 
+    ingress_security_rules {
+        protocol = "6"
+        source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
+        description = "Allow ssh connection from public subnet"
+        tcp_options {
+            min = "22"
+            max = "22"
+        }
+     }
 
+    ingress_security_rules {
+        protocol = "17"
+        source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
+        description = "Allow vpn connection from public subnet"
+        tcp_options {
+            min = "1194"
+            max = "1194"
+        }
+     }
      egress_security_rules {
-        protocol = "all"
+        protocol = "6"
         destination   = "0.0.0.0/0"
      }
-}
 
-#Patch existing subnet security list. Need to add this security list to exist private subnet. But we cant do this in terraform, 
-#so we need to create it manualy in web gui.
+    egress_security_rules {
+        protocol = "17"
+        destination   = "0.0.0.0/0"
+        description = "OpenVPN egress"
+        udp_options {
+            min = "1194"
+            max = "1194"
+        }
+     }
+    egress_security_rules {
+        protocol = "17"
+        destination   = "0.0.0.0/0"
+        description = "NTP egress"
+        udp_options {
+            min = "123"
+            max = "123"
+        }
+     }
+    egress_security_rules {
+        protocol = "4"
+        destination   = var.private_subnet_cidr_block
+        description = "IPIP private subnet egress block"
+     }
+}
 
 resource "oci_core_instance" "k8s-cp-instance" {
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[2].name
