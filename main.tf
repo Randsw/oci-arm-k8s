@@ -96,6 +96,12 @@ resource "oci_core_security_list" "k8s_security_list" {
     freeform_tags = var.app_tags
 
     ingress_security_rules {
+        protocol = "all"
+        source   = var.private_subnet_cidr_block
+        description = "Allow all connection from private subnet"
+     }
+
+    ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
         description = "Allow http connection"
@@ -105,7 +111,7 @@ resource "oci_core_security_list" "k8s_security_list" {
         }
      }
 
-        ingress_security_rules {
+    ingress_security_rules {
         protocol = "6"
         source   = "0.0.0.0/0"
         description = "Allow https connection"
@@ -114,27 +120,6 @@ resource "oci_core_security_list" "k8s_security_list" {
                 max = "443"
             }
         }
-
-    ingress_security_rules {
-        protocol = "6"
-        source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
-        description = "Allow connection to k8s api from public subnet through OpenVPN"
-        tcp_options {
-            min = "6443"
-            max = "6443"
-        }
-     }
-
-    ingress_security_rules {
-        protocol = "6"
-        source   = var.private_subnet_cidr_block
-        description = "Allow connection k8s CNI BGP connection in private subnet"
-        tcp_options {
-            min = "179"
-            max = "179"
-        }
-     }
-
     ingress_security_rules {
         protocol = "17"
         source   = "0.0.0.0/0"
@@ -146,15 +131,13 @@ resource "oci_core_security_list" "k8s_security_list" {
      }
 
     ingress_security_rules {
-        protocol = "4"
+        protocol = "6"
         source   = data.oci_core_subnets.public_subnets.subnets[0].cidr_block
-        description = "Allow IPIP connection from public subnet"
-     }
-
-    ingress_security_rules {
-        protocol = "4"
-        source   = var.private_subnet_cidr_block
-        description = "Allow IPIP connection"
+        description = "Allow connection to k8s api from public subnet through OpenVPN"
+        tcp_options {
+            min = "6443"
+            max = "6443"
+        }
      }
 
     ingress_security_rules {
