@@ -36,7 +36,7 @@
      
     - name: Print ip address of VW
       debug:
-        var:  hostvars[item]['ansible_eth1']['ipv4']['address']
+        var:  hostvars[item]['ansible_eth0']['ipv4']['address']
       loop: "{{ groups['all'] }}"
   
     - name: Run the equivalent of "apt-get update" as a separate step
@@ -58,6 +58,28 @@
         line: "{{ hostvars[item]['ansible_host'] }}  {{ item }}"
       loop: "{{ groups['k8s_cluster'] }}"
 
+    - name: Stop iptables
+      service:
+        name: iptables
+        state: stopped
+
+    - name: Delete default reject rule
+      lineinfile: 
+        dest: /etc/iptables/rule.v4
+        state: absent 
+        regexp: "{{ item }}"
+      loop: 
+       - "-A INPUT -j REJECT --reject-with icmp-host-prohibited"
+       - "-A FORWARD -j REJECT --reject-with icmp-host-prohibited"
+      register: default_rule_clean
+
+    - name: Restart iptables
+      service:
+        name: iptables
+        state: restarted
+
+    - name: Save firewall rule
+      command: netfilter-persistent save
 
     - name: Install nessesary package
       block:

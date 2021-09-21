@@ -84,10 +84,8 @@ variable "k8s_worker_private_ip" {
     type = string
 }
 
-
-variable "security_list_name" {
+variable "openvpn_subnet_cidr" {
     type = string
-    default = null
 }
 
 variable "egress_rule" {

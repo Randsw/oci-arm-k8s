@@ -11,6 +11,15 @@
     monitoring_namespace: monitoring
 
   pre_tasks:
+
+   - name: Delete default reject rule
+     lineinfile: 
+        dest: /home/cluster01/test_iptables_ubuntu
+        state: absent 
+        regexp: "{{ item }}"
+     loop: 
+       - "-A INPUT -j REJECT --reject-with icmp-host-prohibited"
+       - "-A FORWARD -j REJECT --reject-with icmp-host-prohibited"
     # - name: Add taints to gw nodes
     #   command: kubectl taint nodes {{ node }} {{ kubernetes_gw_taints }}
     #   loop: "{{ groups['k8s_ha_gateway'] }}"
@@ -73,7 +82,7 @@
     #- { role: role-k8s_manifests }
     # - { role: role-k8s_manifests, when: kubernetes_role == 'first-master'}
     # - { role: role-helm, when: kubernetes_role == 'first-master'}
-    - { role: role-efk-stack }
+    # - { role: role-efk-stack }
     # - { role: role-vault, when: kubernetes_role == 'first-master' }
     # - { role: role-certmanager, when: kubernetes_role == 'first-master' }
     # - { role: role-app-deploy, when: kubernetes_role == 'first-master'}

@@ -1,2 +1,2 @@
-metallb_start_address: "192.168.1.141"
-metallb_stop_address:  "192.168.1.149"
+metallb_start_address: "172.16.1.141"
+metallb_stop_address:  "172.16.1.149"
